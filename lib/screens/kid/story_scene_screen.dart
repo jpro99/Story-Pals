@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_colors.dart';
+import '../../core/utils/sound_service.dart';
 import '../../core/utils/tts_service.dart';
+import '../../core/visuals/effects.dart';
+import '../../core/visuals/living_background.dart';
+import '../../core/visuals/pal_character.dart';
 import '../../providers/chapter_provider.dart';
 
 class StorySceneScreen extends ConsumerStatefulWidget {
@@ -26,6 +29,7 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
   late Animation<Offset> _charSlide;
   late Animation<double> _dialogFade;
   bool _dialogVisible = false;
+  bool _showEndChoice = false;
 
   @override
   void initState() {
@@ -76,10 +80,12 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
   }
 
   void _advance(Map<String, dynamic> scene) {
+    if (_showEndChoice) return;
     final next = scene['next'] as String?;
     if (next == null) {
-      // Chapter complete — post check-in
-      context.go('/emotion-checkin?post=true');
+      // Chapter complete — offer endless mode or finish.
+      setState(() => _showEndChoice = true);
+      ref.read(ttsServiceProvider).speak('Do you want more puzzles?');
       return;
     }
     if (next.startsWith('puzzle_')) {
@@ -105,31 +111,42 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
           orElse: () => chapter.scenes.first,
         ) as Map<String, dynamic>;
 
-        final locale = 'en'; // TODO: wire to locale provider
+        const locale = 'en'; // TODO: wire to locale provider
         final dialog =
             (scene['dialog'] as Map<String, dynamic>?)?[locale] as String? ??
                 '';
         final background = scene['background'] as String? ?? 'jungle';
         final action = scene['character_action'] as String? ?? 'idle';
+        SoundFx.ambientForScene(background);
 
         return Scaffold(
           body: GestureDetector(
             onTap: () => _advance(scene),
-            child: Stack(
+            child: TapSparkles(
+              child: Stack(
               children: [
-                // Background
+                // Living, animated background
                 Positioned.fill(
-                  child: _SceneBackground(background: background),
+                  child: LivingBackground(scene: background),
                 ),
-                // Character
+                // Celebration confetti on celebrate scenes
+                if (action == 'celebrate')
+                  Positioned.fill(
+                    child: ConfettiRain(
+                      pieces: 60,
+                      hearts: chapter.character == 'doll',
+                    ),
+                  ),
+                // Animated vector character
                 Positioned(
                   left: 20,
-                  bottom: 180,
+                  bottom: 170,
                   child: SlideTransition(
                     position: _charSlide,
-                    child: _CharacterWidget(
+                    child: PalCharacter(
                       character: chapter.character,
                       action: action,
+                      size: 190,
                     ),
                   ),
                 ),
@@ -172,7 +189,16 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
                     ),
                   ),
                 ),
+                // End-of-chapter choice: endless mode or all done
+                if (_showEndChoice)
+                  _EndChoiceOverlay(
+                    character: chapter.character,
+                    onMorePuzzles: () =>
+                        context.go('/practice?pal=${chapter.character}'),
+                    onAllDone: () => context.go('/emotion-checkin?post=true'),
+                  ),
               ],
+              ),
             ),
           ),
         );
@@ -181,161 +207,73 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
   }
 }
 
-class _SceneBackground extends StatelessWidget {
-  const _SceneBackground({required this.background});
-  final String background;
-
-  static const _gradients = {
-    'jungle': [Color(0xFF2E7D32), Color(0xFF81C784)],
-    'jungle_river': [Color(0xFF1565C0), Color(0xFF4CAF50)],
-    'jungle_clearing': [Color(0xFF558B2F), Color(0xFFAED581)],
-    'jungle_feast': [Color(0xFF33691E), Color(0xFF8BC34A)],
-    'bedroom': [Color(0xFFCE93D8), Color(0xFFF8BBD0)],
-    'tea_table': [Color(0xFFAD1457), Color(0xFFF48FB1)],
-    'tea_party': [Color(0xFF6A1B9A), Color(0xFFCE93D8)],
-  };
+class _EndChoiceOverlay extends StatelessWidget {
+  const _EndChoiceOverlay({
+    required this.character,
+    required this.onMorePuzzles,
+    required this.onAllDone,
+  });
+  final String character;
+  final VoidCallback onMorePuzzles;
+  final VoidCallback onAllDone;
 
   @override
   Widget build(BuildContext context) {
-    final colors = _gradients[background] ??
-        [AppColors.primary, AppColors.primaryDark];
+    final heroName = character == 'doll' ? 'Luna' : 'Rex';
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: colors,
+      color: Colors.black.withValues(alpha: 0.5),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PalCharacter(
+                character: character, action: 'celebrate', size: 160),
+            const SizedBox(height: 8),
+            Text(
+              'More puzzles?',
+              style: Theme.of(context)
+                  .textTheme
+                  .displayMedium
+                  ?.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 300,
+              height: 76,
+              child: ElevatedButton(
+                onPressed: onMorePuzzles,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C4DFF),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                ),
+                child: Text('🚀 Play More with $heroName!',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: 300,
+              height: 64,
+              child: ElevatedButton(
+                onPressed: onAllDone,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF4A4A6A),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
+                ),
+                child: const Text('⭐ All Done!',
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
         ),
       ),
-      child: _BackgroundDetails(background: background),
     );
-  }
-}
-
-class _BackgroundDetails extends StatelessWidget {
-  const _BackgroundDetails({required this.background});
-  final String background;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _ScenePainter(background));
-  }
-}
-
-class _ScenePainter extends CustomPainter {
-  const _ScenePainter(this.background);
-  final String background;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-
-    // Ground
-    paint.color = Colors.black.withOpacity(0.15);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, size.height * 0.7, size.width, size.height * 0.3),
-        const Radius.circular(0),
-      ),
-      paint,
-    );
-
-    // Simple tree shapes for jungle scenes
-    if (background.contains('jungle')) {
-      _drawTree(canvas, size, size.width * 0.85, size.height * 0.5);
-      _drawTree(canvas, size, size.width * 0.1, size.height * 0.55);
-    }
-
-    // Clouds
-    paint.color = Colors.white.withOpacity(0.3);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.7, size.height * 0.12),
-        width: 120,
-        height: 50,
-      ),
-      paint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.3, size.height * 0.08),
-        width: 90,
-        height: 40,
-      ),
-      paint,
-    );
-  }
-
-  void _drawTree(Canvas canvas, Size size, double x, double y) {
-    final paint = Paint()..color = Colors.green.shade800.withOpacity(0.6);
-    // Trunk
-    paint.color = Colors.brown.withOpacity(0.5);
-    canvas.drawRect(Rect.fromCenter(center: Offset(x, y + 60), width: 16, height: 60), paint);
-    // Canopy
-    paint.color = Colors.green.shade700.withOpacity(0.6);
-    canvas.drawCircle(Offset(x, y), 50, paint);
-  }
-
-  @override
-  bool shouldRepaint(_ScenePainter old) => old.background != background;
-}
-
-class _CharacterWidget extends StatefulWidget {
-  const _CharacterWidget({required this.character, required this.action});
-  final String character;
-  final String action;
-
-  @override
-  State<_CharacterWidget> createState() => _CharacterWidgetState();
-}
-
-class _CharacterWidgetState extends State<_CharacterWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _idleCtrl;
-  late Animation<double> _idleBounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _idleCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-    _idleBounce = Tween(begin: 0.0, end: -12.0).animate(
-      CurvedAnimation(parent: _idleCtrl, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _idleCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final emoji = widget.character == 'dino' ? '🦕' : '🪆';
-    final size = _actionSize(widget.action);
-
-    return AnimatedBuilder(
-      animation: _idleBounce,
-      builder: (_, child) => Transform.translate(
-        offset: Offset(0, _idleBounce.value),
-        child: child,
-      ),
-      child: Text(emoji, style: TextStyle(fontSize: size)),
-    );
-  }
-
-  double _actionSize(String action) {
-    switch (action) {
-      case 'celebrate':
-        return 110;
-      case 'jump':
-        return 100;
-      default:
-        return 90;
-    }
   }
 }
 
@@ -352,7 +290,7 @@ class _DialogBubble extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.15),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),

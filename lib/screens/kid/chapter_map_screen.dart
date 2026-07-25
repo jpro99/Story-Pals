@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/sound_service.dart';
+import '../../core/visuals/effects.dart';
+import '../../core/visuals/living_background.dart';
+import '../../core/visuals/pal_character.dart';
 import '../../data/content/content_loader.dart';
 import '../../providers/child_profile_provider.dart';
 import '../../providers/chapter_provider.dart';
@@ -16,9 +20,16 @@ class ChapterMapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final child = ref.watch(activeChildProvider);
     final chaptersAsync = ref.watch(allChaptersProvider);
+    // Great-grandma's lullaby, re-voiced as a music box.
+    SoundFx.ambient('family_song_loop');
 
     return Scaffold(
-      body: SafeArea(
+      body: TapSparkles(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const LivingBackground(scene: 'map'),
+            SafeArea(
         child: Column(
           children: [
             Padding(
@@ -49,8 +60,20 @@ class ChapterMapScreen extends ConsumerWidget {
                 error: (e, _) => Center(child: Text('Error: $e')),
                 data: (chapters) => ListView.builder(
                   padding: const EdgeInsets.all(24),
-                  itemCount: chapters.length,
-                  itemBuilder: (context, i) {
+                  itemCount: chapters.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: _PracticeCard(
+                          enabled: child != null,
+                          onTap: child != null
+                              ? () => context.go('/practice')
+                              : null,
+                        ),
+                      );
+                    }
+                    final i = index - 1;
                     final chapter = chapters[i];
                     final isUnlocked =
                         ref.watch(chapterUnlockedProvider(chapter.chapterId));
@@ -85,6 +108,75 @@ class ChapterMapScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PracticeCard extends StatelessWidget {
+  const _PracticeCard({required this.enabled, this.onTap});
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Wiggle(
+        enabled: enabled,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7C4DFF), Color(0xFF5B8FFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C4DFF).withValues(alpha: 0.35),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Text('🚀', style: TextStyle(fontSize: 48)),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Practice Adventure',
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Endless puzzles that grow with you! '
+                      'Coding · Math · Letters',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white, size: 28),
+            ],
+          ),
         ),
       ),
     );
@@ -141,11 +233,15 @@ class _ChapterCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
+      child: Wiggle(
+        enabled: isUnlocked && !isComplete,
+        child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isUnlocked ? color.withOpacity(0.12) : Colors.grey.shade100,
+          color: isUnlocked
+              ? Colors.white.withValues(alpha: 0.92)
+              : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isUnlocked ? color : Colors.grey.shade300,
@@ -154,7 +250,7 @@ class _ChapterCard extends StatelessWidget {
           boxShadow: isUnlocked
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -163,11 +259,12 @@ class _ChapterCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(
-              chapter.character == 'dino' ? '🦕' : '🪆',
-              style: TextStyle(
-                fontSize: 52,
-                color: isUnlocked ? null : const Color(0x44000000),
+            Opacity(
+              opacity: isUnlocked ? 1.0 : 0.35,
+              child: PalCharacter(
+                character: chapter.character,
+                action: 'idle',
+                size: 68,
               ),
             ),
             const SizedBox(width: 20),
@@ -220,6 +317,7 @@ class _ChapterCard extends StatelessWidget {
               Icon(Icons.arrow_forward_ios_rounded, color: color, size: 28),
           ],
         ),
+        ),
       ),
     );
   }
@@ -243,7 +341,7 @@ class _ProgressBar extends StatelessWidget {
       child: LinearProgressIndicator(
         value: fraction,
         minHeight: 10,
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withValues(alpha: 0.15),
         valueColor: AlwaysStoppedAnimation(color),
       ),
     );

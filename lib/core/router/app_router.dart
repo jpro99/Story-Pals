@@ -7,10 +7,12 @@ import '../../screens/parent/parent_gate_screen.dart';
 import '../../screens/parent/parent_dashboard_screen.dart';
 import '../../screens/parent/child_profile_setup_screen.dart';
 import '../../screens/parent/privacy_policy_screen.dart';
+import '../../screens/parent/parent_voice_screen.dart';
 import '../../screens/kid/profile_select_screen.dart';
 import '../../screens/kid/chapter_map_screen.dart';
 import '../../screens/kid/story_scene_screen.dart';
 import '../../screens/kid/puzzle_screen.dart';
+import '../../screens/kid/practice_screen.dart';
 import '../../screens/kid/emotion_checkin_screen.dart';
 
 part 'app_router.g.dart';
@@ -22,10 +24,12 @@ class AppRoutes {
   static const String parentDashboard = '/parent-dashboard';
   static const String childProfileSetup = '/child-setup';
   static const String privacyPolicy = '/privacy-policy';
+  static const String parentVoice = '/parent-voice';
   static const String profileSelect = '/profile-select';
   static const String chapterMap = '/chapter-map';
   static const String storyScene = '/story/:chapterId/:sceneId';
   static const String puzzle = '/puzzle/:chapterId/:puzzleIndex';
+  static const String practice = '/practice';
   static const String emotionCheckin = '/emotion-checkin';
 }
 
@@ -59,6 +63,10 @@ GoRouter appRouter(AppRouterRef ref) {
         builder: (context, state) => const PrivacyPolicyScreen(),
       ),
       GoRoute(
+        path: AppRoutes.parentVoice,
+        builder: (context, state) => const ParentVoiceScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.profileSelect,
         builder: (context, state) => const ProfileSelectScreen(),
       ),
@@ -79,6 +87,11 @@ GoRouter appRouter(AppRouterRef ref) {
           chapterId: state.pathParameters['chapterId']!,
           puzzleIndex: int.parse(state.pathParameters['puzzleIndex']!),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.practice,
+        builder: (context, state) =>
+            PracticeScreen(pal: state.uri.queryParameters['pal']),
       ),
       GoRoute(
         path: AppRoutes.emotionCheckin,

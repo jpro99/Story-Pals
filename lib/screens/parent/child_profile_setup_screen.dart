@@ -110,7 +110,7 @@ class _ChildProfileSetupScreenState
                     height: 72,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _avatarColors[i].withOpacity(selected ? 0.3 : 0.1),
+                      color: _avatarColors[i].withValues(alpha: selected ? 0.3 : 0.1),
                       border: Border.all(
                         color: selected
                             ? _avatarColors[i]
@@ -120,7 +120,7 @@ class _ChildProfileSetupScreenState
                       boxShadow: selected
                           ? [
                               BoxShadow(
-                                color: _avatarColors[i].withOpacity(0.4),
+                                color: _avatarColors[i].withValues(alpha: 0.4),
                                 blurRadius: 12,
                               ),
                             ]

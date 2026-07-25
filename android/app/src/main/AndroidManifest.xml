@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Microphone: used ONLY by the parent to record praise lines in their
+         own voice. Recordings never leave the device. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="story_pals"
         android:name="${applicationName}"

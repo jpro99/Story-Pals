@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/sound_service.dart';
 
 // Simple math challenge prevents young children from accidentally entering
 class ParentGateScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,8 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Quiet zone: stop kid-side music so parents (and mic recordings) get silence.
+    SoundFx.ambient(null);
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -93,7 +96,7 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen> {
                     errorText: _error ? 'Try again!' : null,
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
                     ),
                   ),
                   onSubmitted: (_) => _submit(),

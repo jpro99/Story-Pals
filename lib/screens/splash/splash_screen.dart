@@ -78,7 +78,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         fontSize: 52,
                         shadows: [
                           Shadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withValues(alpha: 0.2),
                             blurRadius: 8,
                             offset: const Offset(2, 4),
                           ),
@@ -89,7 +89,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 Text(
                   'Learning through stories',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w400,
                       ),
                 ),
@@ -109,9 +109,9 @@ class _LogoMark extends StatelessWidget {
       width: 140,
       height: 140,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: Colors.white.withOpacity(0.4), width: 3),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 3),
       ),
       child: const Center(
         child: Text('📖', style: TextStyle(fontSize: 72)),

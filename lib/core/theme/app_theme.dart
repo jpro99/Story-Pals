@@ -70,7 +70,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 4,
-          shadowColor: AppColors.primary.withOpacity(0.4),
+          shadowColor: AppColors.primary.withValues(alpha: 0.4),
           textStyle: const TextStyle(
             fontFamily: 'Nunito',
             fontSize: 18,
@@ -81,7 +81,7 @@ class AppTheme {
 
   static CardThemeData get _cardTheme => CardThemeData(
         elevation: 6,
-        shadowColor: AppColors.primary.withOpacity(0.15),
+        shadowColor: AppColors.primary.withValues(alpha: 0.15),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
         ),

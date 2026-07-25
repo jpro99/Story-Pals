@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/tts_service.dart';
+import '../../core/visuals/effects.dart';
+import '../../core/visuals/living_background.dart';
 import '../../models/emotion_entry.dart';
 import '../../providers/child_profile_provider.dart';
 import '../../data/local/isar_service.dart';
@@ -84,7 +86,13 @@ class _EmotionCheckinScreenState extends ConsumerState<EmotionCheckinScreen>
         : 'How are you feeling today?';
 
     return Scaffold(
-      body: SafeArea(
+      body: TapSparkles(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const LivingBackground(scene: 'puzzle_green'),
+            if (widget.isPostSession) const ConfettiRain(pieces: 40),
+            SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
@@ -139,6 +147,9 @@ class _EmotionCheckinScreenState extends ConsumerState<EmotionCheckinScreen>
               const SizedBox(height: 16),
             ],
           ),
+        ),
+            ),
+          ],
         ),
       ),
     );
@@ -209,7 +220,7 @@ class _EmotionButtonState extends State<_EmotionButton>
                 shape: BoxShape.circle,
                 color: widget.isSelected
                     ? widget.color
-                    : widget.color.withOpacity(0.2),
+                    : widget.color.withValues(alpha: 0.2),
                 border: Border.all(
                   color: widget.isSelected ? widget.color : Colors.transparent,
                   width: 3,
@@ -217,7 +228,7 @@ class _EmotionButtonState extends State<_EmotionButton>
                 boxShadow: widget.isSelected
                     ? [
                         BoxShadow(
-                          color: widget.color.withOpacity(0.4),
+                          color: widget.color.withValues(alpha: 0.4),
                           blurRadius: 12,
                           spreadRadius: 2,
                         ),

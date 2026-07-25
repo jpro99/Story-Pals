@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/local/isar_service.dart';
 import '../../models/child_profile.dart';
+import '../../models/emotion_entry.dart';
 import '../../providers/child_profile_provider.dart';
+import '../../providers/skill_level_provider.dart';
 
 class ParentDashboardScreen extends ConsumerWidget {
   const ParentDashboardScreen({super.key});
@@ -57,7 +60,9 @@ class ParentDashboardScreen extends ConsumerWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+            _VoiceCard(),
+            const SizedBox(height: 16),
             _PrivacyCard(),
           ],
         ),
@@ -130,12 +135,256 @@ class _ChildCardState extends ConsumerState<_ChildCard> {
           if (_expanded) ...[
             const Divider(height: 1),
             Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _MoodSection(
+                childUuid: widget.profile.uuid,
+                childName: widget.profile.name,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _MasteryLevels(childUuid: widget.profile.uuid),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _InterestPicker(childUuid: widget.profile.uuid),
+            ),
+            Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: _LearningWeights(profile: widget.profile),
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _InterestPicker extends StatefulWidget {
+  const _InterestPicker({required this.childUuid});
+  final String childUuid;
+
+  @override
+  State<_InterestPicker> createState() => _InterestPickerState();
+}
+
+class _InterestPickerState extends State<_InterestPicker> {
+  List<String>? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    InterestStore.getInterests(widget.childUuid).then((v) {
+      if (mounted) setState(() => _selected = v);
+    });
+  }
+
+  Future<void> _toggle(String id) async {
+    final current = List<String>.from(_selected ?? []);
+    current.contains(id) ? current.remove(id) : current.add(id);
+    setState(() => _selected = current);
+    await InterestStore.setInterests(widget.childUuid, current);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _selected;
+    if (selected == null) return const SizedBox(height: 24);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Interests', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 4),
+        Text(
+          'What does your child love? Puzzles re-theme around these — '
+          'a dinosaur kid counts T-Rexes, a soccer kid counts goals.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: InterestStore.available.map((interest) {
+            final isOn = selected.contains(interest.id);
+            return FilterChip(
+              label: Text(interest.label),
+              selected: isOn,
+              onSelected: (_) => _toggle(interest.id),
+              selectedColor: AppColors.primary.withValues(alpha: 0.2),
+              checkmarkColor: AppColors.primary,
+              labelStyle: TextStyle(
+                fontWeight: isOn ? FontWeight.w800 : FontWeight.w500,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _MoodSection extends StatelessWidget {
+  const _MoodSection({required this.childUuid, required this.childName});
+  final String childUuid;
+  final String childName;
+
+  static const _emojiFor = {
+    EmotionLevel.verySad: '😢',
+    EmotionLevel.sad: '😕',
+    EmotionLevel.neutral: '😐',
+    EmotionLevel.happy: '🙂',
+    EmotionLevel.veryHappy: '😄',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<EmotionEntry>>(
+      future: IsarService.getEmotionsForChild(
+        childUuid,
+        since: DateTime.now().subtract(const Duration(days: 14)),
+      ),
+      builder: (context, snap) {
+        final entries = snap.data;
+        if (entries == null || entries.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        // Alert when the last 3 days contain a very-sad, or 2+ sad check-ins.
+        final cutoff = DateTime.now().subtract(const Duration(days: 3));
+        final recent =
+            entries.where((e) => e.recordedAt.isAfter(cutoff)).toList();
+        final verySadCount =
+            recent.where((e) => e.emotion == EmotionLevel.verySad).length;
+        final sadCount =
+            recent.where((e) => e.emotion == EmotionLevel.sad).length;
+        final needsAttention = verySadCount >= 1 || sadCount >= 2;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Mood Check-Ins',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            // Latest check-ins, most recent first.
+            Wrap(
+              spacing: 6,
+              children: entries
+                  .take(10)
+                  .map((e) => Tooltip(
+                        message:
+                            '${e.checkInType == 'pre' ? 'Before' : 'After'} playing · '
+                            '${e.recordedAt.month}/${e.recordedAt.day}',
+                        child: Text(_emojiFor[e.emotion] ?? '😐',
+                            style: const TextStyle(fontSize: 26)),
+                      ))
+                  .toList(),
+            ),
+            if (needsAttention) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.6)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('💛', style: TextStyle(fontSize: 22)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '$childName has checked in feeling sad recently. '
+                        'It might be a nice moment to sit together, play a '
+                        'chapter side by side, or just ask about their day.',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MasteryLevels extends StatelessWidget {
+  const _MasteryLevels({required this.childUuid});
+  final String childUuid;
+
+  static const _skills = [
+    (id: 'coding', label: '💻 Coding'),
+    (id: 'math', label: '🔢 Math'),
+    (id: 'english', label: '📖 Letters'),
+    (id: 'spanish', label: '🌎 Spanish'),
+    (id: 'tagalog', label: '🌺 Tagalog'),
+  ];
+
+  Future<List<(String, int, int)>> _load() async {
+    final out = <(String, int, int)>[];
+    for (final s in _skills) {
+      final level = await SkillLevelStore.getLevel(childUuid, s.id);
+      final solved = await SkillLevelStore.getSolvedCount(childUuid, s.id);
+      out.add((s.label, level, solved));
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<(String, int, int)>>(
+      future: _load(),
+      builder: (context, snap) {
+        final data = snap.data;
+        if (data == null) return const SizedBox(height: 24);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Practice Mastery',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            ...data.map((row) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(row.$1,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600)),
+                      ),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: row.$2 / 10,
+                            minHeight: 8,
+                            backgroundColor:
+                                AppColors.primary.withValues(alpha: 0.12),
+                            valueColor: const AlwaysStoppedAnimation(
+                                AppColors.primary),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Lv ${row.$2} · ${row.$3} solved',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        );
+      },
     );
   }
 }
@@ -309,6 +558,27 @@ class _WeightSlider extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _VoiceCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.dollPinkLight,
+      child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        leading: const Text('🎙️', style: TextStyle(fontSize: 32)),
+        title: Text('Record Your Voice',
+            style: Theme.of(context).textTheme.titleLarge),
+        subtitle: const Text(
+            'Read a few praise lines so your child hears YOU cheering '
+            'them on — not a computer voice.'),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded),
+        onTap: () => context.go(AppRoutes.parentVoice),
+      ),
     );
   }
 }
