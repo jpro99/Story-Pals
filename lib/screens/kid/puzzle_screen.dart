@@ -74,40 +74,45 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen>
         .recordPuzzleComplete(widget.puzzleIndex, tags);
 
     SoundFx.play('celebrate');
-    // Speak the praise and hold the celebration until BOTH the speech has
-    // finished and a minimum celebration time has passed — no more cutting
-    // the voice off mid-sentence when the next screen loads.
+    // Speak the praise and hold a short celebration, then advance.
+    // Speech wait is capped so a stuck TTS completion can't freeze the game.
     final speech = ref
         .read(parentVoiceServiceProvider)
         .praise(ref.read(activeChildProvider)?.name)
-        .timeout(const Duration(seconds: 12), onTimeout: () {});
+        .timeout(const Duration(seconds: 5), onTimeout: () {});
     _celebrationCtrl.forward();
     await Future.wait([
       speech,
-      Future.delayed(const Duration(milliseconds: 1400)),
+      Future.delayed(const Duration(milliseconds: 900)),
     ]);
     if (!mounted) return;
     _goNext(puzzle);
   }
 
   void _goNext(Map<String, dynamic> puzzle) {
-    final chapterAsync = ref.read(chapterContentProvider(widget.chapterId));
-    chapterAsync.whenData((chapter) {
-      final currentScene = chapter.scenes.firstWhere(
-        (s) => s['type'] == 'puzzle' && s['puzzle_index'] == widget.puzzleIndex,
-        orElse: () => null,
-      );
-      if (currentScene == null) {
-        context.go('/story/${widget.chapterId}/outro_1');
-        return;
-      }
-      final next = currentScene['next_on_complete'] as String?;
-      if (next == null) {
-        context.go('${AppRoutes.emotionCheckin}?post=true');
-      } else {
-        context.go('/story/${widget.chapterId}/$next');
-      }
-    });
+    final chapter =
+        ref.read(chapterContentProvider(widget.chapterId)).asData?.value;
+    if (chapter == null) {
+      context.go('${AppRoutes.emotionCheckin}?post=true');
+      return;
+    }
+    final currentScene = chapter.scenes.cast<Map<String, dynamic>?>().firstWhere(
+          (s) =>
+              s != null &&
+              s['type'] == 'puzzle' &&
+              s['puzzle_index'] == widget.puzzleIndex,
+          orElse: () => null,
+        );
+    if (currentScene == null) {
+      context.go('/story/${widget.chapterId}/outro_1');
+      return;
+    }
+    final next = currentScene['next_on_complete'] as String?;
+    if (next == null) {
+      context.go('${AppRoutes.emotionCheckin}?post=true');
+    } else {
+      context.go('/story/${widget.chapterId}/$next');
+    }
   }
 
   @override

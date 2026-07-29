@@ -136,7 +136,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     final praiseSpeech = ref
         .read(parentVoiceServiceProvider)
         .praise(child?.name)
-        .timeout(const Duration(seconds: 12), onTimeout: () {});
+        .timeout(const Duration(seconds: 5), onTimeout: () {});
 
     var leveled = false;
     if (child != null) {
@@ -179,14 +179,14 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     // then move on. Speech is never cut off between puzzles.
     await Future.wait([
       praiseSpeech,
-      Future.delayed(Duration(milliseconds: leveled ? 2200 : 1200)),
+      Future.delayed(Duration(milliseconds: leveled ? 1600 : 900)),
     ]);
     if (leveled && mounted) {
       await ref
           .read(parentVoiceServiceProvider)
           .levelUp('Level up! You reached level ${_levels[_skill]} in '
               '${_skillInfo[_skill]!.label}!')
-          .timeout(const Duration(seconds: 10), onTimeout: () {});
+          .timeout(const Duration(seconds: 5), onTimeout: () {});
     }
     if (!mounted) return;
     _nextPuzzle();

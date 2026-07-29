@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -25,13 +26,13 @@ class TtsService {
       await _tts.setEngine('com.google.android.tts');
     } catch (_) {}
     await _tts.setVolume(1.0);
-    // Slightly raised pitch + gentle rate reads as friendly. Overdoing the
-    // pitch makes synthetic voices sound MORE robotic, so keep it subtle.
-    await _tts.setPitch(1.12);
-    await _tts.setSpeechRate(0.46);
-    // Make speak() complete only when the speech actually finishes, so
-    // screens can wait for a sentence to end before moving on.
-    await _tts.awaitSpeakCompletion(true);
+    await _tts.setPitch(1.08);
+    // Web Speech API treats ~1.0 as natural; 0.46 was painfully slow in browser.
+    // Mobile uses 0–1 scale where ~0.55–0.6 still sounds kid-friendly.
+    await _tts.setSpeechRate(kIsWeb ? 1.0 : 0.58);
+    // On web, speak-completion callbacks often never fire, which freezes
+    // puzzle flow waiting for praise to "finish". Don't await completion there.
+    await _tts.awaitSpeakCompletion(!kIsWeb);
     await _pickBestVoice();
     _ready = true;
   }
@@ -82,10 +83,35 @@ class TtsService {
     await _tts.setLanguage(lang);
   }
 
+  /// Rough listen time so UI can pause without relying on flaky web callbacks.
+  Duration _estimateDuration(String text) {
+    final words = text.trim().isEmpty
+        ? 1
+        : text.trim().split(RegExp(r'\s+')).length;
+    // ~160 wpm on web at rate 1.0, plus a short buffer.
+    final ms = (words * (kIsWeb ? 320 : 380) + 400).clamp(700, 6000);
+    return Duration(milliseconds: ms);
+  }
+
   Future<void> speak(String text) async {
     if (!_ready || text.isEmpty) return;
-    await _tts.stop();
-    await _tts.speak(text);
+    try {
+      await _tts.stop();
+    } catch (_) {}
+    if (kIsWeb) {
+      // Fire speech, then wait an estimate so callers can advance reliably.
+      // ignore: unawaited_futures
+      _tts.speak(text);
+      await Future.delayed(_estimateDuration(text));
+      return;
+    }
+    try {
+      await _tts.speak(text).timeout(
+            _estimateDuration(text) + const Duration(seconds: 2),
+          );
+    } catch (_) {
+      // Timeout / platform glitch — don't block gameplay.
+    }
   }
 
   static const _praise = [
@@ -128,7 +154,13 @@ class TtsService {
   Future<void> encourage() =>
       speak(_encourage[_rnd.nextInt(_encourage.length)]);
 
-  Future<void> stop() async => _tts.stop();
+  Future<void> stop() async {
+    try {
+      await _tts.stop();
+    } catch (_) {}
+  }
 
-  void dispose() => _tts.stop();
+  void dispose() {
+    _tts.stop();
+  }
 }

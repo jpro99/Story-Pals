@@ -1,10 +1,11 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
+import 'parent_voice_files.dart'
+    if (dart.library.html) 'parent_voice_files_web.dart' as voice_files;
 import 'tts_service.dart';
 
 /// A line the parent can record in their own voice.
@@ -63,35 +64,28 @@ final parentVoiceServiceProvider = Provider<ParentVoiceService>((ref) {
 
 /// Plays parent-recorded lines when available, falls back to TTS when not.
 /// Recordings live in the app's private documents folder and never leave
-/// the device.
+/// the device. On web, recordings are skipped (TTS only).
 class ParentVoiceService {
   ParentVoiceService(this._tts);
   final TtsService _tts;
   final AudioPlayer _player = AudioPlayer();
   final math.Random _rnd = math.Random();
 
-  static Future<Directory> _dir() async {
-    final docs = await getApplicationDocumentsDirectory();
-    final dir = Directory('${docs.path}/parent_voice');
-    if (!await dir.exists()) await dir.create(recursive: true);
-    return dir;
-  }
-
-  static Future<String> filePathFor(String lineId) async {
-    final dir = await _dir();
-    return '${dir.path}/$lineId.m4a';
-  }
+  static Future<String> filePathFor(String lineId) =>
+      voice_files.filePathFor(lineId);
 
   static Future<bool> isRecorded(String lineId) async {
-    return File(await filePathFor(lineId)).exists();
+    if (kIsWeb) return false;
+    return voice_files.isRecorded(lineId);
   }
 
   static Future<void> deleteRecording(String lineId) async {
-    final f = File(await filePathFor(lineId));
-    if (await f.exists()) await f.delete();
+    if (kIsWeb) return;
+    await voice_files.deleteRecording(lineId);
   }
 
   Future<List<VoiceLine>> _recordedIn(String category) async {
+    if (kIsWeb) return const [];
     final out = <VoiceLine>[];
     for (final line in parentVoiceLines) {
       if (line.category == category && await isRecorded(line.id)) {
@@ -112,14 +106,15 @@ class ParentVoiceService {
 
   /// Play one specific recorded line. Completes when playback finishes.
   Future<bool> playLine(String lineId) async {
+    if (kIsWeb) return false;
     final path = await filePathFor(lineId);
-    if (!await File(path).exists()) return false;
+    if (!await voice_files.existsPath(path)) return false;
     try {
       await _tts.stop();
       await _player.stop();
       await _player.play(DeviceFileSource(path));
       await _player.onPlayerComplete.first
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 8));
       return true;
     } catch (_) {
       return false;
