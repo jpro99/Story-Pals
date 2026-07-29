@@ -28,20 +28,43 @@ class ProfileSelectScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Row(
+                children: [
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => context.go(AppRoutes.parentGate),
+                    icon: const Icon(Icons.family_restroom_rounded, size: 22),
+                    label: const Text(
+                      'Parents',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               'Who\'s playing?',
               style: Theme.of(context).textTheme.displayMedium,
             ),
             const SizedBox(height: 8),
-            GestureDetector(
-              onLongPress: () => context.go(AppRoutes.parentGate),
-              child: Text(
-                'Tap your picture!',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+            Text(
+              'Tap your picture!',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Expanded(
               child: profilesAsync.when(
                 loading: () =>
@@ -53,6 +76,16 @@ class ProfileSelectScreen extends ConsumerWidget {
                             context.go(AppRoutes.parentGate),
                       )
                     : _ProfileGrid(profiles: profiles),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+              child: Text(
+                'Grown-ups: tap Parents (top right) to set learning and see moods.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],

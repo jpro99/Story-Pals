@@ -64,12 +64,12 @@ class _ParentGateScreenState extends ConsumerState<ParentGateScreen> {
               const Text('👨‍👩‍👧', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 24),
               Text(
-                'Parent Area',
+                'Parents Only',
                 style: Theme.of(context).textTheme.displayMedium,
               ),
               const SizedBox(height: 8),
               Text(
-                'Please solve this to continue:',
+                'Solve this quick question so little ones stay in play mode:',
                 style: Theme.of(context).textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),

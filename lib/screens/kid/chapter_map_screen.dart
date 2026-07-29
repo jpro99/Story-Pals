@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/router/app_router.dart';
 import '../../core/utils/sound_service.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
@@ -49,6 +50,11 @@ class ChapterMapScreen extends ConsumerWidget {
                   ),
                   if (child != null)
                     _ChildBadge(name: child.name, avatarIndex: child.avatarIndex),
+                  IconButton(
+                    icon: const Icon(Icons.family_restroom_rounded, size: 26),
+                    tooltip: 'Parents',
+                    onPressed: () => context.go(AppRoutes.parentGate),
+                  ),
                 ],
               ),
             ),
