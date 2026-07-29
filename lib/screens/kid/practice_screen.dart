@@ -92,11 +92,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     final child = ref.read(activeChildProvider);
     final weights = <String, double>{
       'coding': child?.codingWeight ?? 0.5,
-      'math': child?.mathWeight ?? 0.5,
-      'english': child?.englishWeight ?? 0.5,
-      // Spanish and Tagalog share the parent's Language slider.
-      'spanish': (child?.additionalLanguageWeight ?? 0.3) / 2,
-      'tagalog': (child?.additionalLanguageWeight ?? 0.3) / 2,
+      'math': child?.mathWeight ?? 0.4,
+      'english': child?.englishWeight ?? 0.4,
+      'spanish': child?.spanishWeight ?? 0.25,
+      'tagalog': child?.tagalogWeight ?? 0.25,
     };
     final total = weights.values.fold(0.0, (a, b) => a + b);
     if (total <= 0) {

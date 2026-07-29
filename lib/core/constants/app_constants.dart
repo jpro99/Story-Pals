@@ -24,9 +24,11 @@ class AppConstants {
 
   // Learning weight slider defaults (0.0–1.0)
   static const double defaultCodingWeight = 0.5;
-  static const double defaultMathWeight = 0.3;
+  static const double defaultMathWeight = 0.4;
   static const double defaultEnglishWeight = 0.4;
-  static const double defaultLanguageWeight = 0.2;
+  static const double defaultLanguageWeight = 0.2; // legacy combined
+  static const double defaultSpanishWeight = 0.25;
+  static const double defaultTagalogWeight = 0.25;
   static const double defaultGeographyWeight = 0.1;
 
   // Supported locales

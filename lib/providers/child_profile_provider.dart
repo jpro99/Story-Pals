@@ -32,7 +32,8 @@ class ChildProfilesNotifier extends AsyncNotifier<List<ChildProfile>> {
       codingWeight: AppConstants.defaultCodingWeight,
       mathWeight: AppConstants.defaultMathWeight,
       englishWeight: AppConstants.defaultEnglishWeight,
-      additionalLanguageWeight: AppConstants.defaultLanguageWeight,
+      spanishWeight: AppConstants.defaultSpanishWeight,
+      tagalogWeight: AppConstants.defaultTagalogWeight,
       geographyWeight: AppConstants.defaultGeographyWeight,
       sessionLimitMinutes: AppConstants.defaultSessionMinutes,
       progressJson: '{}',
@@ -49,6 +50,8 @@ class ChildProfilesNotifier extends AsyncNotifier<List<ChildProfile>> {
     double? coding,
     double? math,
     double? english,
+    double? spanish,
+    double? tagalog,
     double? language,
     double? geography,
     int? sessionMinutes,
@@ -59,13 +62,19 @@ class ChildProfilesNotifier extends AsyncNotifier<List<ChildProfile>> {
       codingWeight: coding,
       mathWeight: math,
       englishWeight: english,
-      additionalLanguageWeight: language,
+      spanishWeight: spanish ?? language,
+      tagalogWeight: tagalog ?? language,
       geographyWeight: geography,
       sessionLimitMinutes: sessionMinutes,
       updatedAt: DateTime.now(),
       isSynced: false,
     );
     await IsarService.saveProfile(updated);
+    // Keep the active kid in sync so Practice Adventure picks up new weights.
+    final active = ref.read(activeChildProvider);
+    if (active?.uuid == uuid) {
+      ref.read(activeChildProvider.notifier).state = updated;
+    }
     ref.invalidateSelf();
   }
 

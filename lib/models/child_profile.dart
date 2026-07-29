@@ -6,12 +6,17 @@ class ChildProfile {
   final int avatarIndex;
   final String? parentUid;
 
-  // Learning weights (0.0–1.0), parent-configured
+  // Learning weights (0.0–1.0), parent-configured — steer Practice Adventure
   final double codingWeight;
   final double mathWeight;
   final double englishWeight;
-  final double additionalLanguageWeight;
+  final double spanishWeight;
+  final double tagalogWeight;
   final double geographyWeight;
+
+  /// Legacy combined language weight (kept for older rows / APIs).
+  double get additionalLanguageWeight =>
+      ((spanishWeight + tagalogWeight) / 2).clamp(0.0, 1.0);
 
   final int sessionLimitMinutes;
 
@@ -32,7 +37,8 @@ class ChildProfile {
     required this.codingWeight,
     required this.mathWeight,
     required this.englishWeight,
-    required this.additionalLanguageWeight,
+    required this.spanishWeight,
+    required this.tagalogWeight,
     required this.geographyWeight,
     required this.sessionLimitMinutes,
     required this.progressJson,
@@ -51,7 +57,8 @@ class ChildProfile {
     double? codingWeight,
     double? mathWeight,
     double? englishWeight,
-    double? additionalLanguageWeight,
+    double? spanishWeight,
+    double? tagalogWeight,
     double? geographyWeight,
     int? sessionLimitMinutes,
     String? progressJson,
@@ -69,8 +76,8 @@ class ChildProfile {
       codingWeight: codingWeight ?? this.codingWeight,
       mathWeight: mathWeight ?? this.mathWeight,
       englishWeight: englishWeight ?? this.englishWeight,
-      additionalLanguageWeight:
-          additionalLanguageWeight ?? this.additionalLanguageWeight,
+      spanishWeight: spanishWeight ?? this.spanishWeight,
+      tagalogWeight: tagalogWeight ?? this.tagalogWeight,
       geographyWeight: geographyWeight ?? this.geographyWeight,
       sessionLimitMinutes: sessionLimitMinutes ?? this.sessionLimitMinutes,
       progressJson: progressJson ?? this.progressJson,
@@ -91,6 +98,8 @@ class ChildProfile {
         'math_weight': mathWeight,
         'english_weight': englishWeight,
         'language_weight': additionalLanguageWeight,
+        'spanish_weight': spanishWeight,
+        'tagalog_weight': tagalogWeight,
         'geography_weight': geographyWeight,
         'session_limit_minutes': sessionLimitMinutes,
         'progress_json': progressJson,
@@ -99,22 +108,30 @@ class ChildProfile {
         'is_synced': isSynced ? 1 : 0,
       };
 
-  factory ChildProfile.fromMap(Map<String, dynamic> m) => ChildProfile(
-        id: m['id'] as int?,
-        uuid: m['uuid'] as String,
-        name: m['name'] as String,
-        ageYears: m['age_years'] as int,
-        avatarIndex: m['avatar_index'] as int,
-        parentUid: m['parent_uid'] as String?,
-        codingWeight: (m['coding_weight'] as num).toDouble(),
-        mathWeight: (m['math_weight'] as num).toDouble(),
-        englishWeight: (m['english_weight'] as num).toDouble(),
-        additionalLanguageWeight: (m['language_weight'] as num).toDouble(),
-        geographyWeight: (m['geography_weight'] as num).toDouble(),
-        sessionLimitMinutes: m['session_limit_minutes'] as int,
-        progressJson: m['progress_json'] as String,
-        createdAt: DateTime.parse(m['created_at'] as String),
-        updatedAt: DateTime.parse(m['updated_at'] as String),
-        isSynced: (m['is_synced'] as int) == 1,
-      );
+  factory ChildProfile.fromMap(Map<String, dynamic> m) {
+    final legacyLang = (m['language_weight'] as num?)?.toDouble() ?? 0.2;
+    final spanish =
+        (m['spanish_weight'] as num?)?.toDouble() ?? legacyLang;
+    final tagalog =
+        (m['tagalog_weight'] as num?)?.toDouble() ?? legacyLang;
+    return ChildProfile(
+      id: m['id'] as int?,
+      uuid: m['uuid'] as String,
+      name: m['name'] as String,
+      ageYears: m['age_years'] as int,
+      avatarIndex: m['avatar_index'] as int,
+      parentUid: m['parent_uid'] as String?,
+      codingWeight: (m['coding_weight'] as num).toDouble(),
+      mathWeight: (m['math_weight'] as num).toDouble(),
+      englishWeight: (m['english_weight'] as num).toDouble(),
+      spanishWeight: spanish,
+      tagalogWeight: tagalog,
+      geographyWeight: (m['geography_weight'] as num).toDouble(),
+      sessionLimitMinutes: m['session_limit_minutes'] as int,
+      progressJson: m['progress_json'] as String,
+      createdAt: DateTime.parse(m['created_at'] as String),
+      updatedAt: DateTime.parse(m['updated_at'] as String),
+      isSynced: (m['is_synced'] as int) == 1,
+    );
+  }
 }

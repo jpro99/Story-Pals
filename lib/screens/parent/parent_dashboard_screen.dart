@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/local/isar_service.dart';
 import '../../models/child_profile.dart';
 import '../../models/emotion_entry.dart';
+import '../../models/session_record.dart';
 import '../../providers/child_profile_provider.dart';
 import '../../providers/skill_level_provider.dart';
 
@@ -35,6 +36,12 @@ class ParentDashboardScreen extends ConsumerWidget {
           children: [
             Text('Child Profiles',
                 style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 8),
+            Text(
+              'Open a child below to steer Coding, Math, English, Spanish, '
+              'and Tagalog — and to see moods and play stats.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
             const SizedBox(height: 16),
             if (profiles.isEmpty)
               _EmptyProfilesCard(
@@ -110,7 +117,7 @@ class _ChildCard extends ConsumerStatefulWidget {
 }
 
 class _ChildCardState extends ConsumerState<_ChildCard> {
-  bool _expanded = false;
+  bool _expanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -125,15 +132,22 @@ class _ChildCardState extends ConsumerState<_ChildCard> {
             leading: Text(emoji, style: const TextStyle(fontSize: 36)),
             title: Text(widget.profile.name,
                 style: Theme.of(context).textTheme.titleLarge),
-            subtitle: Text('Age ${widget.profile.ageYears}'),
+            subtitle: Text(
+              'Age ${widget.profile.ageYears} · tap to ${_expanded ? 'collapse' : 'steer learning'}',
+            ),
             trailing: IconButton(
               icon: Icon(
                   _expanded ? Icons.expand_less : Icons.expand_more),
               onPressed: () => setState(() => _expanded = !_expanded),
             ),
+            onTap: () => setState(() => _expanded = !_expanded),
           ),
           if (_expanded) ...[
             const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: _LearningWeights(profile: widget.profile),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: _MoodSection(
@@ -143,15 +157,15 @@ class _ChildCardState extends ConsumerState<_ChildCard> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: _MasteryLevels(childUuid: widget.profile.uuid),
+              child: _PlayStats(childUuid: widget.profile.uuid),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: _InterestPicker(childUuid: widget.profile.uuid),
+              child: _MasteryLevels(childUuid: widget.profile.uuid),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: _LearningWeights(profile: widget.profile),
+              child: _InterestPicker(childUuid: widget.profile.uuid),
             ),
           ],
         ],
@@ -236,49 +250,99 @@ class _MoodSection extends StatelessWidget {
     EmotionLevel.veryHappy: '😄',
   };
 
+  static const _labelFor = {
+    EmotionLevel.verySad: 'Really sad',
+    EmotionLevel.sad: 'Sad',
+    EmotionLevel.neutral: 'Okay',
+    EmotionLevel.happy: 'Happy',
+    EmotionLevel.veryHappy: 'Really happy',
+  };
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<EmotionEntry>>(
-      future: IsarService.getEmotionsForChild(
-        childUuid,
-        since: DateTime.now().subtract(const Duration(days: 14)),
-      ),
+      future: IsarService.getEmotionsForChild(childUuid),
       builder: (context, snap) {
-        final entries = snap.data;
-        if (entries == null || entries.isEmpty) {
-          return const SizedBox.shrink();
-        }
+        final entries = snap.data ?? const <EmotionEntry>[];
+        final last14 = entries
+            .where((e) => e.recordedAt.isAfter(
+                  DateTime.now().subtract(const Duration(days: 14)),
+                ))
+            .toList();
+        final last3 = entries
+            .where((e) => e.recordedAt.isAfter(
+                  DateTime.now().subtract(const Duration(days: 3)),
+                ))
+            .toList();
 
-        // Alert when the last 3 days contain a very-sad, or 2+ sad check-ins.
-        final cutoff = DateTime.now().subtract(const Duration(days: 3));
-        final recent =
-            entries.where((e) => e.recordedAt.isAfter(cutoff)).toList();
-        final verySadCount =
-            recent.where((e) => e.emotion == EmotionLevel.verySad).length;
-        final sadCount =
-            recent.where((e) => e.emotion == EmotionLevel.sad).length;
-        final needsAttention = verySadCount >= 1 || sadCount >= 2;
+        int count(EmotionLevel level, List<EmotionEntry> list) =>
+            list.where((e) => e.emotion == level).length;
+
+        final verySadAll = count(EmotionLevel.verySad, entries);
+        final sadAll = count(EmotionLevel.sad, entries);
+        final verySad14 = count(EmotionLevel.verySad, last14);
+        final sad14 = count(EmotionLevel.sad, last14);
+        final happy14 = count(EmotionLevel.happy, last14) +
+            count(EmotionLevel.veryHappy, last14);
+        final needsAttention = count(EmotionLevel.verySad, last3) >= 1 ||
+            count(EmotionLevel.sad, last3) >= 2;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Mood Check-Ins',
+            Text('Mood & Feelings',
                 style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            // Latest check-ins, most recent first.
-            Wrap(
-              spacing: 6,
-              children: entries
-                  .take(10)
-                  .map((e) => Tooltip(
-                        message:
-                            '${e.checkInType == 'pre' ? 'Before' : 'After'} playing · '
-                            '${e.recordedAt.month}/${e.recordedAt.day}',
-                        child: Text(_emojiFor[e.emotion] ?? '😐',
-                            style: const TextStyle(fontSize: 26)),
-                      ))
-                  .toList(),
+            const SizedBox(height: 4),
+            Text(
+              'How often $childName taps each feeling at check-in.',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatChip(
+                  emoji: '😢',
+                  label: 'Really sad',
+                  value: '$verySadAll total · $verySad14 in 14 days',
+                  highlight: verySad14 > 0,
+                ),
+                _StatChip(
+                  emoji: '😕',
+                  label: 'Sad',
+                  value: '$sadAll total · $sad14 in 14 days',
+                  highlight: sad14 >= 2,
+                ),
+                _StatChip(
+                  emoji: '😄',
+                  label: 'Happy-ish',
+                  value: '$happy14 in last 14 days',
+                ),
+              ],
+            ),
+            if (entries.isEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'No check-ins yet. After your child plays, their moods show here.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ] else ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                children: last14.take(12).map((e) {
+                  final when =
+                      '${e.recordedAt.month}/${e.recordedAt.day}';
+                  return Tooltip(
+                    message:
+                        '${_labelFor[e.emotion]} · ${e.checkInType == 'pre' ? 'Before' : 'After'} play · $when',
+                    child: Text(_emojiFor[e.emotion] ?? '😐',
+                        style: const TextStyle(fontSize: 26)),
+                  );
+                }).toList(),
+              ),
+            ],
             if (needsAttention) ...[
               const SizedBox(height: 12),
               Container(
@@ -297,9 +361,10 @@ class _MoodSection extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '$childName has checked in feeling sad recently. '
-                        'It might be a nice moment to sit together, play a '
-                        'chapter side by side, or just ask about their day.',
+                        '$childName checked in feeling sad recently '
+                        '(😢 really sad ×${count(EmotionLevel.verySad, last3)}, '
+                        '😕 sad ×${count(EmotionLevel.sad, last3)} in 3 days). '
+                        'A good moment to sit together or ask about their day.',
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w600),
                       ),
@@ -308,6 +373,118 @@ class _MoodSection extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.emoji,
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
+  final String emoji;
+  final String label;
+  final String value;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: highlight
+            ? AppColors.warning.withValues(alpha: 0.15)
+            : AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: highlight
+            ? Border.all(color: AppColors.warning.withValues(alpha: 0.7))
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('$emoji $label',
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlayStats extends StatelessWidget {
+  const _PlayStats({required this.childUuid});
+  final String childUuid;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<SessionRecord>>(
+      future: IsarService.getSessionsForChild(childUuid),
+      builder: (context, snap) {
+        final sessions = snap.data ?? const <SessionRecord>[];
+        final puzzles = sessions.fold<int>(
+            0, (sum, s) => sum + s.puzzlesCompleted);
+        final minutes = sessions.fold<int>(
+                0, (sum, s) => sum + s.durationSeconds) ~/
+            60;
+        final last7 = sessions
+            .where((s) => s.startedAt.isAfter(
+                  DateTime.now().subtract(const Duration(days: 7)),
+                ))
+            .toList();
+        final puzzles7 = last7.fold<int>(
+            0, (sum, s) => sum + s.puzzlesCompleted);
+
+        final tagCounts = <String, int>{};
+        for (final s in sessions) {
+          for (final tag in s.subjectTags) {
+            final key = tag.split('_').first;
+            tagCounts[key] = (tagCounts[key] ?? 0) + 1;
+          }
+        }
+        final topTags = tagCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Play Statistics',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatChip(
+                  emoji: '🧩',
+                  label: 'Puzzles done',
+                  value: '$puzzles all-time · $puzzles7 this week',
+                ),
+                _StatChip(
+                  emoji: '⏱',
+                  label: 'Play time',
+                  value: '$minutes min recorded · ${sessions.length} sessions',
+                ),
+              ],
+            ),
+            if (topTags.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Topics touched most: ${topTags.take(4).map((e) => '${e.key} (${e.value})').join(' · ')}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+            if (sessions.isEmpty)
+              Text(
+                'Stats appear after story chapters and practice sessions.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
           ],
         );
       },
@@ -401,9 +578,11 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
   late double _coding;
   late double _math;
   late double _english;
-  late double _language;
+  late double _spanish;
+  late double _tagalog;
   late double _geography;
   late int _sessionMinutes;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -411,26 +590,61 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
     _coding = widget.profile.codingWeight;
     _math = widget.profile.mathWeight;
     _english = widget.profile.englishWeight;
-    _language = widget.profile.additionalLanguageWeight;
+    _spanish = widget.profile.spanishWeight;
+    _tagalog = widget.profile.tagalogWeight;
     _geography = widget.profile.geographyWeight;
     _sessionMinutes = widget.profile.sessionLimitMinutes;
   }
 
+  @override
+  void didUpdateWidget(covariant _LearningWeights oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.profile.uuid != widget.profile.uuid ||
+        oldWidget.profile.updatedAt != widget.profile.updatedAt) {
+      _coding = widget.profile.codingWeight;
+      _math = widget.profile.mathWeight;
+      _english = widget.profile.englishWeight;
+      _spanish = widget.profile.spanishWeight;
+      _tagalog = widget.profile.tagalogWeight;
+      _geography = widget.profile.geographyWeight;
+      _sessionMinutes = widget.profile.sessionLimitMinutes;
+    }
+  }
+
   Future<void> _save() async {
+    setState(() => _saving = true);
     await ref.read(childProfilesProvider.notifier).updateWeights(
           widget.profile.uuid,
           coding: _coding,
           math: _math,
           english: _english,
-          language: _language,
+          spanish: _spanish,
+          tagalog: _tagalog,
           geography: _geography,
           sessionMinutes: _sessionMinutes,
         );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved!')),
-      );
-    }
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Saved! Practice Adventure will favor these topics.',
+        ),
+      ),
+    );
+  }
+
+  String _mixLabel() {
+    final entries = <(String, double)>[
+      ('Coding', _coding),
+      ('Math', _math),
+      ('English', _english),
+      ('Spanish', _spanish),
+      ('Tagalog', _tagalog),
+      ('Geography', _geography),
+    ]..sort((a, b) => b.$2.compareTo(a.$2));
+    final top = entries.take(2).map((e) => e.$1).join(' & ');
+    return 'Practice will lean toward: $top';
   }
 
   @override
@@ -438,12 +652,21 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Learning Focus',
+        Text('Steer what they practice',
             style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(
-          'Slide to control how often each topic appears.',
+          'Slide up topics you want more of. Practice Adventure picks '
+          'puzzles using these weights — turn something down to see it less.',
           style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _mixLabel(),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
         ),
         const SizedBox(height: 16),
         _WeightSlider(
@@ -465,10 +688,16 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
           onChanged: (v) => setState(() => _english = v),
         ),
         _WeightSlider(
-          label: '🌍 Language',
-          value: _language,
+          label: '🇪🇸 Spanish',
+          value: _spanish,
           color: AppColors.secondary,
-          onChanged: (v) => setState(() => _language = v),
+          onChanged: (v) => setState(() => _spanish = v),
+        ),
+        _WeightSlider(
+          label: '🇵🇭 Tagalog',
+          value: _tagalog,
+          color: const Color(0xFF00897B),
+          onChanged: (v) => setState(() => _tagalog = v),
         ),
         _WeightSlider(
           label: '🗺 Geography',
@@ -508,12 +737,12 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: _save,
+            onPressed: _saving ? null : _save,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Save Settings'),
+            child: Text(_saving ? 'Saving…' : 'Save learning focus'),
           ),
         ),
       ],
