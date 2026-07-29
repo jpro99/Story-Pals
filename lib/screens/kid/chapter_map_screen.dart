@@ -20,8 +20,8 @@ class ChapterMapScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final child = ref.watch(activeChildProvider);
     final chaptersAsync = ref.watch(allChaptersProvider);
-    // Great-grandma's lullaby, re-voiced as a music box.
-    SoundFx.ambient('family_song_loop');
+    // Great-grandma's lullaby (music-box synth) — app-wide theme.
+    SoundFx.ambient(SoundFx.themeTrack);
 
     return Scaffold(
       body: TapSparkles(

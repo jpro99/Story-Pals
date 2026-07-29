@@ -36,8 +36,12 @@ class SoundFx {
   static final AudioPlayer _ambientPlayer = AudioPlayer();
   static String? _currentAmbient;
 
+  /// Great-grandma's lullaby, synthesized as a soft music-box loop.
+  /// Used as the single ambient theme across the kid experience.
+  static const String themeTrack = 'grandma_theme_loop';
+
   /// Start (or switch) the looping background track. Pass null to stop.
-  /// Tracks: music_box_loop, jungle_loop.
+  /// Default theme is [themeTrack] (grandma lullaby music box).
   static Future<void> ambient(String? name, {double volume = 0.22}) async {
     if (_currentAmbient == name) return;
     _currentAmbient = name;
@@ -50,12 +54,8 @@ class SoundFx {
     } catch (_) {}
   }
 
-  /// Pick the ambience matching a scene name.
-  /// family_song_loop is great-grandma's lullaby melody, re-voiced as a
-  /// music box — it plays on the chapter map and in bedtime scenes.
+  /// Scene ambience — one lullaby theme throughout (jungle/bedroom/map/etc.).
   static Future<void> ambientForScene(String scene) {
-    if (scene.startsWith('jungle')) return ambient('jungle_loop');
-    if (scene == 'bedroom') return ambient('family_song_loop');
-    return ambient('music_box_loop');
+    return ambient(themeTrack, volume: 0.20);
   }
 }
