@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/sound_service.dart';
+import '../../core/utils/sound_volume_panel.dart';
 import '../../models/child_profile.dart';
 import '../../providers/child_profile_provider.dart';
 
@@ -24,9 +26,13 @@ class ProfileSelectScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profilesAsync = ref.watch(childProfilesProvider);
 
+    SoundFx.ambient(SoundFx.themeTrack);
+
     return Scaffold(
-      body: SafeArea(
-        child: Column(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -90,6 +96,9 @@ class ProfileSelectScreen extends ConsumerWidget {
             ),
           ],
         ),
+          ),
+          const SoundVolumeOverlay(),
+        ],
       ),
     );
   }

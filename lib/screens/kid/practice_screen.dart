@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/parent_voice_service.dart';
+import '../../core/utils/puzzle_speech.dart';
 import '../../core/utils/sound_service.dart';
+import '../../core/utils/sound_volume_panel.dart';
 import '../../core/utils/tts_service.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
@@ -103,9 +105,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       _celebrating = false;
       _leveledUp = false;
     });
-    final instruction =
-        (_puzzle?['instruction'] as Map<String, dynamic>?)?['en'] as String?;
-    if (instruction != null) {
+    final instruction = spokenInstructionFor(_puzzle ?? const {});
+    if (instruction.isNotEmpty) {
       ref.read(ttsServiceProvider).speak(instruction);
     }
   }
@@ -189,9 +190,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     final info = _skillInfo[_skill]!;
     final level = _levels[_skill] ?? 1;
     final puzzle = _puzzle;
-    final instruction =
-        (puzzle?['instruction'] as Map<String, dynamic>?)?['en'] as String? ??
-            '';
+    final instruction = spokenInstructionFor(puzzle ?? const {});
 
     final scene = _themed
         ? (widget.pal == 'doll' ? 'tea_party' : 'jungle_clearing')
@@ -249,6 +248,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 level: level,
                 character: _palCharacter,
               ),
+            const SoundVolumeOverlay(),
           ],
         ),
       ),

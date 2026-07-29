@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/parent_voice_service.dart';
+import '../../core/utils/puzzle_speech.dart';
 import '../../core/utils/sound_service.dart';
+import '../../core/utils/sound_volume_panel.dart';
 import '../../core/utils/tts_service.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
@@ -40,6 +42,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+    SoundFx.ambient(SoundFx.themeTrack);
     WidgetsBinding.instance.addPostFrameCallback((_) => _speakInstruction());
   }
 
@@ -47,11 +50,11 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen>
     final chapterAsync = ref.read(chapterContentProvider(widget.chapterId));
     chapterAsync.whenData((chapter) {
       if (widget.puzzleIndex >= chapter.puzzles.length) return;
-      final puzzle = chapter.puzzles[widget.puzzleIndex] as Map<String, dynamic>;
-      final instruction =
-          (puzzle['instruction'] as Map<String, dynamic>?)?['en'] as String?;
-      if (instruction != null && instruction.isNotEmpty) {
-        ref.read(ttsServiceProvider).speak(instruction);
+      final puzzle =
+          chapter.puzzles[widget.puzzleIndex] as Map<String, dynamic>;
+      final spoken = spokenInstructionFor(puzzle);
+      if (spoken.isNotEmpty) {
+        ref.read(ttsServiceProvider).speak(spoken);
       }
     });
   }
@@ -138,10 +141,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen>
 
         final puzzle = chapter.puzzles[widget.puzzleIndex] as Map<String, dynamic>;
         const locale = 'en';
-        final instruction =
-            (puzzle['instruction'] as Map<String, dynamic>?)?[locale]
-                    as String? ??
-                'Complete the puzzle!';
+        final instruction = spokenInstructionFor(puzzle);
 
         return Scaffold(
           body: TapSparkles(
@@ -191,6 +191,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen>
                     controller: _celebrationCtrl,
                     character: chapter.character,
                   ),
+                const SoundVolumeOverlay(),
               ],
             ),
           ),

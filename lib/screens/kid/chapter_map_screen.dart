@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/sound_service.dart';
+import '../../core/utils/sound_volume_panel.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
 import '../../core/visuals/pal_character.dart';
@@ -116,6 +117,7 @@ class ChapterMapScreen extends ConsumerWidget {
           ],
         ),
             ),
+            const SoundVolumeOverlay(),
           ],
         ),
       ),

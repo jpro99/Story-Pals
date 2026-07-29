@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/utils/sound_service.dart';
+import '../../core/utils/sound_volume_panel.dart';
 import '../../core/utils/tts_service.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
@@ -197,6 +198,10 @@ class _StorySceneScreenState extends ConsumerState<StorySceneScreen>
                         context.go('/practice?pal=${chapter.character}'),
                     onAllDone: () => context.go('/emotion-checkin?post=true'),
                   ),
+                const SoundVolumeOverlay(
+                  alignment: Alignment.bottomRight,
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 56),
+                ),
               ],
               ),
             ),

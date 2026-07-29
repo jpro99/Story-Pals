@@ -451,9 +451,11 @@ class PuzzleGenerator {
       'subject_tags': ['language_english'],
       'show_hints': showHints,
       'instruction': {
-        'en': level <= 6
-            ? 'Match each picture to its letter!'
-            : 'Which letter does each word start with? Match them!',
+        'en': [
+          'Match each picture to its letter!',
+          for (final c in chosen)
+            '${c.word} starts with the letter ${c.letter}.',
+        ].join(' '),
       },
       'items': [
         for (var i = 0; i < chosen.length; i++)
@@ -461,6 +463,7 @@ class PuzzleGenerator {
             'id': chosen[i].word.toLowerCase().replaceAll(' ', '_'),
             'emoji': chosen[i].emoji,
             'color': _itemColors[i % _itemColors.length],
+            'label': {'en': chosen[i].word},
             'target_id': 'letter_${chosen[i].letter}',
           }
       ],
