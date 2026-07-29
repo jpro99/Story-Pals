@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
 
 import '../../models/child_profile.dart';
@@ -13,7 +14,10 @@ class IsarService {
   }
 
   static Future<Database> _open() async {
-    final path = '${await getDatabasesPath()}/story_pals.db';
+    // Web ffi stores by simple name in IndexedDB; native uses the platform path.
+    final path = kIsWeb
+        ? 'story_pals.db'
+        : '${await getDatabasesPath()}/story_pals.db';
     return openDatabase(
       path,
       version: 1,
