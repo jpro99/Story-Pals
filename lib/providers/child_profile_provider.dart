@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/child_profile.dart';
 import '../core/constants/app_constants.dart';
 import '../data/local/isar_service.dart';
+import 'chapter_provider.dart';
 
 final childProfilesProvider =
     AsyncNotifierProvider<ChildProfilesNotifier, List<ChildProfile>>(
@@ -76,6 +77,8 @@ class ChildProfilesNotifier extends AsyncNotifier<List<ChildProfile>> {
       ref.read(activeChildProvider.notifier).state = updated;
     }
     ref.invalidateSelf();
+    // Force story chapters to rebuild puzzles from the new weights.
+    ref.invalidate(chapterContentProvider);
   }
 
   Future<void> markPuzzleComplete(

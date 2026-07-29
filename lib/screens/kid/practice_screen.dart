@@ -12,6 +12,7 @@ import '../../core/utils/tts_service.dart';
 import '../../core/visuals/effects.dart';
 import '../../core/visuals/living_background.dart';
 import '../../core/visuals/pal_character.dart';
+import '../../data/content/learning_steerer.dart';
 import '../../data/content/puzzle_generator.dart';
 import '../../providers/child_profile_provider.dart';
 import '../../providers/skill_level_provider.dart';
@@ -88,27 +89,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   }
 
   /// Weighted skill choice based on the parent's Learning Focus sliders.
-  String _chooseSkill() {
-    final child = ref.read(activeChildProvider);
-    final weights = <String, double>{
-      'coding': child?.codingWeight ?? 0.5,
-      'math': child?.mathWeight ?? 0.4,
-      'english': child?.englishWeight ?? 0.4,
-      'spanish': child?.spanishWeight ?? 0.25,
-      'tagalog': child?.tagalogWeight ?? 0.25,
-    };
-    final total = weights.values.fold(0.0, (a, b) => a + b);
-    if (total <= 0) {
-      return PuzzleGenerator
-          .skills[_rnd.nextInt(PuzzleGenerator.skills.length)];
-    }
-    var roll = _rnd.nextDouble() * total;
-    for (final e in weights.entries) {
-      roll -= e.value;
-      if (roll <= 0) return e.key;
-    }
-    return weights.keys.last;
-  }
+  String _chooseSkill() =>
+      LearningSteerer.chooseSkill(ref.read(activeChildProvider), _rnd);
 
   void _nextPuzzle() {
     final skill = _chooseSkill();

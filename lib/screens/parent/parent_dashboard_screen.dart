@@ -628,7 +628,7 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Saved! Practice Adventure will favor these topics.',
+          'Saved! Stories and Practice will favor these topics.',
         ),
       ),
     );
@@ -656,8 +656,9 @@ class _LearningWeightsState extends ConsumerState<_LearningWeights> {
             style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(
-          'Slide up topics you want more of. Practice Adventure picks '
-          'puzzles using these weights — turn something down to see it less.',
+          'Slide up topics you want more of. Story chapters AND Practice '
+          'Adventure both rewrite their puzzles from these weights — turn '
+          'something down to see it less.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
