@@ -145,9 +145,38 @@ class _SequencePuzzleState extends State<SequencePuzzle> {
   Widget build(BuildContext context) {
     const locale = 'en';
     final items = _items;
+    final orderHint = items
+        .map((it) {
+          final label = (it['label'] as Map<String, dynamic>?)?['en'] as String?;
+          return label ?? (it['id'] as String? ?? '');
+        })
+        .where((s) => s.isNotEmpty)
+        .join(' → ');
 
     return Column(
       children: [
+        if (orderHint.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Order: $orderHint',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        Text(
+          _selectedId == null
+              ? '1️⃣ Tap a step below'
+              : '2️⃣ Now tap a numbered box above',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
         // Numbered drop slots — tap to place selected item
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

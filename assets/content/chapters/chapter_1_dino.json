@@ -197,7 +197,7 @@
       "type": "sequence",
       "subject_tags": ["coding_sequence"],
       "instruction": {
-        "en": "Help Rex follow these 4 steps in order!",
+        "en": "Help Rex! Put the steps in order: Walk, then Jump, then Grab, then Eat. Tap a step, then tap a numbered box.",
         "es": "¡Ayuda a Rex a seguir estos 4 pasos en orden!",
         "tl": "Tulungan si Rex sundin ang 4 na hakbang na ito sa tamang pagkakasunod!"
       },

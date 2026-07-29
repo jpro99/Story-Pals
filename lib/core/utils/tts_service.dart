@@ -25,16 +25,25 @@ class TtsService {
     try {
       await _tts.setEngine('com.google.android.tts');
     } catch (_) {}
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.08);
-    // Web Speech API treats ~1.0 as natural; 0.46 was painfully slow in browser.
-    // Mobile uses 0–1 scale where ~0.55–0.6 still sounds kid-friendly.
-    await _tts.setSpeechRate(kIsWeb ? 1.0 : 0.58);
-    // On web, speak-completion callbacks often never fire, which freezes
-    // puzzle flow waiting for praise to "finish". Don't await completion there.
-    await _tts.awaitSpeakCompletion(!kIsWeb);
-    await _pickBestVoice();
+    try {
+      await _tts.setVolume(1.0);
+      await _tts.setPitch(1.08);
+      // Web Speech API treats ~1.0 as natural; 0.46 was painfully slow in browser.
+      // Mobile uses 0–1 scale where ~0.55–0.6 still sounds kid-friendly.
+      await _tts.setSpeechRate(kIsWeb ? 1.0 : 0.58);
+      // On web, speak-completion callbacks often never fire, which freezes
+      // puzzle flow waiting for praise to "finish". Don't await completion there.
+      await _tts.awaitSpeakCompletion(!kIsWeb);
+      try {
+        await _tts.setLanguage('en-US');
+      } catch (_) {}
+    } catch (_) {}
+    // Mark ready BEFORE voice picking — getVoices can hang on web and used to
+    // leave the whole app silent (instructions never spoken).
     _ready = true;
+    try {
+      await _pickBestVoice().timeout(const Duration(seconds: 2));
+    } catch (_) {}
   }
 
   /// Try to find the highest-quality, friendliest voice installed on the
@@ -94,7 +103,14 @@ class TtsService {
   }
 
   Future<void> speak(String text) async {
-    if (!_ready || text.isEmpty) return;
+    if (text.isEmpty) return;
+    // First puzzle can load before init finishes — wait briefly, don't skip.
+    if (!_ready) {
+      for (var i = 0; i < 20 && !_ready; i++) {
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+      if (!_ready) return;
+    }
     try {
       await _tts.stop();
     } catch (_) {}

@@ -226,12 +226,13 @@ class PuzzleGenerator {
     const storyNames = ['Robo', 'Rex', 'Luna', 'Zippy'];
     final name = heroName ?? _pick(storyNames);
 
+    final stepNames = ordered.map((a) => a.label).join(', then ');
     return {
       'type': 'sequence',
       'subject_tags': ['coding_sequence'],
       'instruction': {
-        'en': 'Program $name! Put the ${_numWord(steps)} steps in order: '
-            '${ordered.map((a) => a.label.toLowerCase()).join(", ")}!',
+        'en': 'Help $name! Put the steps in order: $stepNames. '
+            'Tap a step, then tap box 1, then the next step, then box 2.',
       },
       'items': [
         for (final a in ordered)
